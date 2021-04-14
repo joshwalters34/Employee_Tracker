@@ -1,7 +1,27 @@
 const mysql = require('mysql');
 const inquirer = require('inquirer');
+const cTable = require('console.table');
 
-const runSearch = () => {
+const connection = mysql.createConnection({
+  host: 'localhost',
+
+  // Your port; if not 3306
+  port: 3306,
+
+  // Your username
+  user: 'root',
+
+  // Your password
+  password: 'GoNiners02@',
+  database: 'employeetracker_db',
+});
+
+connection.connect((err) => {
+  if (err) throw err;
+  startPrompt();
+});
+
+const startPrompt = () => {
     inquirer
       .prompt({
         name: 'start',
@@ -10,7 +30,8 @@ const runSearch = () => {
         choices: [
           'View All Employees',
           'View All Employees by Department',
-          'View All Employees by Manager',
+          'View All Departments',
+          'View All Roles',
           'Add Employee',
           'Add Department',
           'Add Role',
@@ -18,25 +39,37 @@ const runSearch = () => {
         ],
       })
       .then((answer) => {
-        switch (answer.action) {
-          case 'Find songs by artist':
-            artistSearch();
+        switch (answer.start) {
+          case 'View All Employees':
+            employeesAll();
             break;
   
-          case 'Find all artists who appear more than once':
-            multiSearch();
+          case 'View All Employees by Deparment':
+            employeesByDept();
             break;
   
-          case 'Find data within a specific range':
-            rangeSearch();
+          case 'View All Departments':
+            departmentsAll();
             break;
   
-          case 'Search for a specific song':
-            songSearch();
+          case 'View All Roles':
+            rolesAll();
             break;
   
-          case 'Find artists with a top song and top album in the same year':
-            songAndAlbumSearch();
+          case 'Add Employee':
+            employeeAdd();
+            break;
+
+          case 'Add Department':
+            departmentAdd();
+            break;
+            
+          case 'Add Role':
+            roleAdd();
+            break;
+
+          case 'Update Employee Role':
+            employeeRoleUpdate();
             break;
   
           default:
@@ -45,3 +78,16 @@ const runSearch = () => {
         }
       });
   };
+
+  const employeesAll = () => {
+    const query = 'SELECT * FROM employeetable INNER JOIN roletable on employeetable.role_id = roletable.id';
+    connection.query(query, (err, res) =>  {
+      if (err) throw err;
+      res.forEach(({first_name, last_name, title, manager_id, salary}) => {
+        // console.table(`First Name: ${first_name} || Last Name ${last_name} || Title: ${role_id} || Manager: ${manager_id} `);
+        const table = cTable.getTable([{first_name: first_name, last_name: last_name, title: title, Manager: manager_id, Salary: salary} ]);
+        console.log(table)
+      });
+      startPrompt();
+    });
+  }
