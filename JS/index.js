@@ -44,7 +44,7 @@ const startPrompt = () => {
             employeesAll();
             break;
   
-          case 'View All Employees by Deparment':
+          case 'View All Employees by Department':
             employeesByDept();
             break;
   
@@ -80,14 +80,148 @@ const startPrompt = () => {
   };
 
   const employeesAll = () => {
-    const query = 'SELECT * FROM employeetable INNER JOIN roletable on employeetable.role_id = roletable.id';
+    // const query = 'SELECT * FROM employeetable INNER JOIN roletable on employeetable.role_id = roletable.id';
+    const query = 'select e.first_name, e.last_name, r.title, r.salary, d.name from employeetable e join roletable r on e.role_id = r.id join department d on r.department_id = d.id ORDER BY last_name'
     connection.query(query, (err, res) =>  {
       if (err) throw err;
-      res.forEach(({first_name, last_name, title, manager_id, salary}) => {
-        // console.table(`First Name: ${first_name} || Last Name ${last_name} || Title: ${role_id} || Manager: ${manager_id} `);
-        const table = cTable.getTable([{first_name: first_name, last_name: last_name, title: title, Manager: manager_id, Salary: salary} ]);
-        console.log(table)
+      const cTableItems = res.map(({first_name, last_name, title, manager_id, salary, name}) => {
+        return {first_name: first_name, last_name: last_name, title: title, Manager: manager_id, Salary: salary, Department: name};
+        
       });
+      const table = cTable.getTable(cTableItems)
+      console.log(table)
       startPrompt();
     });
   }
+
+  
+  const employeesByDept = () => {
+    const departmentsEmpAll = 'SELECT id, name FROM department'
+    connection.query(departmentsEmpAll, (err, res) => {
+      if (err) throw err;
+      const deptartmentChoices = res.map(({name}) => {
+          return name
+        })
+        inquirer
+    .prompt({
+      name: 'dept',
+      type: 'list',
+      message: 'Please choose your department?',
+      choices: 
+        deptartmentChoices,
+    })
+    .then((answer) => {
+      const query = 'select e.first_name, e.last_name, r.title, r.salary, d.name from employeetable e join roletable r on e.role_id = r.id join department d on r.department_id = d.id WhERE ? ORDER BY last_name'
+      connection.query(query, {name: answer.dept}, (err, res) =>  {
+        if (err) throw err;
+        // res.forEach(({first_name, last_name, title, manager_id, salary, name}) => {
+          const cTableItems = res.map(({first_name, last_name, title, manager_id, salary, name}) => {
+            return {first_name, last_name, title, manager_id, salary, name}
+            
+        });
+        const table = cTable.getTable(cTableItems);
+
+          // const table = cTable.getTable([{first_name: first_name, last_name: last_name, title: title, Manager: manager_id, Salary: salary, Department: name} ]);
+          console.log(table)
+        startPrompt();
+      });
+    })
+    })
+  }
+    const departmentsAll = () => {
+      const departmentsAll = 'SELECT * FROM department'
+      connection.query(departmentsAll, (err, res) => {
+        if (err) throw err;
+        const cTableItems = res.map(({name}) => {
+            return {department: name}
+          });
+          const table = cTable.getTable(cTableItems)
+          console.log(table)
+          startPrompt();
+    })
+  }
+
+  const rolesAll = () => {
+    const rolesAll = 'SELECT * FROM roletable'
+    connection.query(rolesAll, (err, res) => {
+      if (err) throw err;
+      const cTableItems = res.map(({title, salary}) => {
+          return {title: title, salary: salary}
+        });
+        const table = cTable.getTable(cTableItems)
+        console.log(table)
+        startPrompt();
+  })
+}
+// need to finish this still
+const roleAdd = () => {
+  const departmentsEmpAll = 'SELECT id, name FROM department'
+    connection.query(departmentsEmpAll, (err, res) => {
+      if (err) throw err;
+      const deptartmentChoices = res.map(({name}) => {
+          return deptartmentChoices
+        })
+
+  inquirer
+  .prompt([{
+    name: 'role',
+    type: 'input',
+    message: 'What role would you like to add?',
+  },
+  {name: 'salary',
+  type: 'number',
+  message: 'What is the salary for this role?',
+  },
+  {
+    name: 'dept',
+      type: 'list',
+      message: 'Please choose your department?',
+      choices: 
+        deptartmentChoices,
+        
+  },
+])
+  .then((answer) => {
+    // const query = 'INSERT INTO roletable ( title, salary, department_id) Values(?)'
+    const query = 'Begin; INSERT INTO roletable (title, salary, department_id) VALUES(?)'
+    connection.query(query, {title : answer.role, salary: answer.salary, id: answer.dept}, (err, res) => {
+      if (err) throw err;
+      // res.forEach(({first_name, last_name, title, manager_id, salary, name}) => {
+        const roleResults= res.map(({title, salary, department_id}) => {
+          return roleResults
+      });
+      // const table = cTable.getTable(cTableItems);
+
+        // const table = cTable.getTable([{first_name: first_name, last_name: last_name, title: title, Manager: manager_id, Salary: salary, Department: name} ]);
+        console.log('Added new role!!')
+      startPrompt();
+    });
+    });
+  })
+  }
+
+  const departmentAdd = () => {
+    inquirer
+    .prompt({
+      name: 'department',
+      type: 'input',
+      message: 'What department would you like to add?',
+    },
+    )
+    .then((answer) => {
+      const deptAdd = 'INSERT INTO department (name) VALUES(?)'
+      
+      connection.query(deptAdd, {name: answer.department}, (err, res) => {
+        if (err) throw err;
+        // const deptAnswer = res.JSON(({name}) => {
+          // const roleResults = res.val(({name}) => {
+          return res.send(answer.department)
+          });
+            
+
+      console.log('Added new role!!')
+        startPrompt();
+      });
+    };
+  
+    

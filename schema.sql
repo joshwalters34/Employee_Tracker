@@ -35,3 +35,12 @@ CREATE TABLE department (
   name VARCHAR(30) NOT NULL,
   PRIMARY KEY (id)
 );
+
+ select * from employeetable e
+ inner join roletable r on e.role_id = r.id;
+ 
+ select e.first_name, e.last_name, r.title, r.salary, d.name, e.manager_id from employeetable e join roletable r on e.role_id = r.id
+ join department d on r.department_id = d.id;
+ 
+ INSERT INTO employeetable (first_name, last_name, role_id, manager_id)
+ Values ("Bob", "Johnson", 3, 1)
