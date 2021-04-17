@@ -81,11 +81,11 @@ const startPrompt = () => {
 
   const employeesAll = () => {
     // const query = 'SELECT * FROM employeetable INNER JOIN roletable on employeetable.role_id = roletable.id';
-    const query = 'select e.first_name, e.last_name, r.title, r.salary, d.name from employeetable e join roletable r on e.role_id = r.id join department d on r.department_id = d.id ORDER BY last_name'
+    const query = 'select e.first_name, e.last_name, r.title, r.salary, d.name,(select emp.last_name from employeetable emp where emp.id = e.manager_id)  as managerfirstname from employeetable e join roletable r on e.role_id = r.id join department d on r.department_id = d.id ORDER BY last_name'
     connection.query(query, (err, res) =>  {
       if (err) throw err;
-      const cTableItems = res.map(({first_name, last_name, title, manager_id, salary, name}) => {
-        return {first_name: first_name, last_name: last_name, title: title, Manager: manager_id, Salary: salary, Department: name};
+      const cTableItems = res.map(({first_name, last_name, title, managerfirstname, salary, name}) => {
+        return {first_name: first_name, last_name: last_name, title: title, Manager: managerfirstname, Salary: salary, Department: name};
         
       });
       const table = cTable.getTable(cTableItems)
@@ -111,12 +111,12 @@ const startPrompt = () => {
         deptartmentChoices,
     })
     .then((answer) => {
-      const query = 'select e.first_name, e.last_name, r.title, r.salary, d.name from employeetable e join roletable r on e.role_id = r.id join department d on r.department_id = d.id WhERE ? ORDER BY last_name'
+      const query = 'select e.first_name, e.last_name, r.title, r.salary, d.name,(select emp.last_name from employeetable emp where emp.id = e.manager_id)  as managerfirstname from employeetable e join roletable r on e.role_id = r.id join department d on r.department_id = d.id WhERE ? ORDER BY last_name'
       connection.query(query, {name: answer.dept}, (err, res) =>  {
         if (err) throw err;
         // res.forEach(({first_name, last_name, title, manager_id, salary, name}) => {
-          const cTableItems = res.map(({first_name, last_name, title, manager_id, salary, name}) => {
-            return {first_name, last_name, title, manager_id, salary, name}
+          const cTableItems = res.map(({first_name, last_name, title, managerfirstname, salary, name}) => {
+            return {first_name, last_name, title, managerfirstname, salary, name}
             
         });
         const table = cTable.getTable(cTableItems);
@@ -155,11 +155,11 @@ const startPrompt = () => {
 }
 // need to finish this still
 const roleAdd = () => {
-  const departmentsEmpAll = 'SELECT id, name FROM department'
-    connection.query(departmentsEmpAll, (err, res) => {
+  const addRole = 'SELECT id, name FROM department'
+    connection.query(addRole, (err, res) => {
       if (err) throw err;
       const deptartmentChoices = res.map(({name}) => {
-          return deptartmentChoices
+          return name
         })
 
   inquirer
@@ -182,17 +182,18 @@ const roleAdd = () => {
   },
 ])
   .then((answer) => {
-    // const query = 'INSERT INTO roletable ( title, salary, department_id) Values(?)'
-    const query = 'Begin; INSERT INTO roletable (title, salary, department_id) VALUES(?)'
-    connection.query(query, {title : answer.role, salary: answer.salary, id: answer.dept}, (err, res) => {
+    const deptPick = 'Select id FROM department where name = ?'
+    const deptResult = connection.query(deptPick, (answer.dept))
+
+    // const query = 'INSERT INTO roletable (title, salary, department_id) VALUES(?, ?, ?)'
+    const query = 'INSERT INTO roletable SET title = ?, salary = ?, department_id = ?'
+    connection.query(query, (answer.role, answer.salary, deptResult), (err, res) => {
       if (err) throw err;
       // res.forEach(({first_name, last_name, title, manager_id, salary, name}) => {
-        const roleResults= res.map(({title, salary, department_id}) => {
+        const roleResults= res.json(({title, salary, department_id}) => {
           return roleResults
       });
-      // const table = cTable.getTable(cTableItems);
-
-        // const table = cTable.getTable([{first_name: first_name, last_name: last_name, title: title, Manager: manager_id, Salary: salary, Department: name} ]);
+            
         console.log('Added new role!!')
       startPrompt();
     });
@@ -203,15 +204,16 @@ const roleAdd = () => {
   const departmentAdd = () => {
     inquirer
     .prompt({
-      name: 'department',
+      name: 'departmentName',
       type: 'input',
       message: 'What department would you like to add?',
     },
     )
     .then((answer) => {
-      const deptAdd = 'INSERT INTO department (name) VALUES(?)'
+      const deptAdd = 'INSERT INTO department (name) VALUES (?)'
+      // const deptAdd = 'INSERT INTO department SET name=?'
       
-      connection.query(deptAdd, {name: answer.department}, (err, res) => {
+      connection.query(deptAdd, (answer.departmentName), (err, res) => {
         if (err) throw err;
         // const deptAnswer = res.JSON(({name}) => {
           // const roleResults = res.val(({name}) => {
@@ -219,7 +221,7 @@ const roleAdd = () => {
           });
             
 
-      console.log('Added new role!!')
+      console.log('New department was added!')
         startPrompt();
       });
     };
