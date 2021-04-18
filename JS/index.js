@@ -2,17 +2,23 @@ const mysql = require('mysql');
 const inquirer = require('inquirer');
 const cTable = require('console.table');
 const util = require('util');
+// require('dotenv').config();
+
+// const connection = mysql.createConnection({
+//   database: process.env.DB_NAME,
+//   user: process.env.DB_USER,
+//   password: process.env.DB_PASSWORD,
+//   host: process.env.DB_HOST,
+  
+//     port: 3306,
+// }
+// );
 
 const connection = mysql.createConnection({
   host: 'localhost',
-
-  // Your port; if not 3306
   port: 3306,
 
-  // Your username
   user: 'root',
-
-  // Your password
   password: 'GoNiners02@',
   database: 'employeetracker_db',
 });
@@ -39,6 +45,7 @@ const startPrompt = () => {
           'Add Department',
           'Add Role',
           'Update Employee Role',
+          'Update Employee Manager'
         ],
       })
       .then((answer) => {
@@ -73,6 +80,10 @@ const startPrompt = () => {
 
           case 'Update Employee Role':
             employeeRoleUpdate();
+            break;
+            
+          case 'Update Employee Manager':
+            employeeMangerUpdate();
             break;
   
           default:
@@ -117,8 +128,8 @@ const startPrompt = () => {
       connection.query(query, {name: answer.dept}, (err, res) =>  {
         if (err) throw err;
         // res.forEach(({first_name, last_name, title, manager_id, salary, name}) => {
-          const cTableItems = res.map(({first_name, last_name, title, managerfirstname, salary, name}) => {
-            return {first_name, last_name, title, managerfirstname, salary, name}
+          const cTableItems = res.map(({first_name, last_name, title, manager, salary, name}) => {
+            return {first_name, last_name, title, manager, salary, name}
             
         });
         const table = cTable.getTable(cTableItems);
@@ -161,7 +172,6 @@ const startPrompt = () => {
 const roleAdd = async () => {
   const addRole = 'SELECT id, name FROM department';
   const departmentData = await query(addRole);
-  // console.log(departmentData)
   const deptartmentChoices = departmentData.map(({name}) => name);
   
   const inquirerPrompt = await inquirer
@@ -180,7 +190,6 @@ const roleAdd = async () => {
     message: 'Please choose your department?',
     choices: 
     deptartmentChoices,
-    
   },
   ])
 
@@ -188,7 +197,6 @@ const roleAdd = async () => {
   const query2 = 'INSERT INTO roletable (title, salary, department_id) VALUES (?, ?, ?)'
   const addRoleData = await query(query2, [inquirerPrompt.role, inquirerPrompt.salary, departResult[0].id])
   
-  console.log(addRoleData);
         
   console.log('Added new role!!')
   startPrompt();
@@ -204,12 +212,9 @@ const roleAdd = async () => {
     )
     .then((answer) => {
       const deptAdd = 'INSERT INTO department (name) VALUES (?)'
-      // const deptAdd = 'INSERT INTO department SET name=?'
       
       connection.query(deptAdd, (answer.departmentName), (err, res) => {
         if (err) throw err;
-        // const deptAnswer = res.JSON(({name}) => {
-          // const roleResults = res.val(({name}) => {
           return res.send(answer.department)
           });
             
@@ -222,12 +227,10 @@ const roleAdd = async () => {
   const employeeAdd = async () => {
     const addTitle = 'SELECT id, title FROM roletable';
     const titleData = await query(addTitle);
-    // console.log(departmentData)
     const titleChoices = titleData.map(({title}) => title);
 
     const addManager = 'SELECT id, last_name FROM employeetable';
     const managerData = await query(addManager);
-    console.log(managerData)
     const managerChoices = managerData.map(({last_name}) => last_name);
     
     const inquirerPrompt = await inquirer
@@ -236,7 +239,7 @@ const roleAdd = async () => {
       type: 'input',
       message: 'Enter first name:',
     },
-    {name: 'last_name.',
+    {name: 'last_name',
     type: 'input',
     message: 'Enter last name:',
     },
@@ -260,10 +263,81 @@ const roleAdd = async () => {
     const managerResult = managerData.filter(val => inquirerPrompt.manager == val.last_name)
     const queryEmp = 'INSERT INTO employeetable (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)'
     const addTitleData = await query(queryEmp, [inquirerPrompt.first_name, inquirerPrompt.last_name, titleResult[0].id, managerResult[0].id])
-    
-    console.log(addTitleData);
           
     console.log('Added new employee!!')
+    startPrompt();
+  }
+
+  // ----update an employee role-----
+  const employeeRoleUpdate = async () => {
+    const addTitle = 'SELECT id, title FROM roletable';
+    const titleData = await query(addTitle);
+    const titleChoices = titleData.map(({title}) => title);
+
+    const addEmp = 'SELECT id, last_name FROM employeetable';
+    const empData = await query(addEmp);
+    const empChoices = empData.map(({last_name}) => last_name);
+    
+    const inquirerPrompt = await inquirer
+    .prompt([
+      {
+        name: 'employee',
+        type: 'list',
+        message: 'Choose an employee to update',
+        choices: 
+        empChoices,
+      },
+      {
+      name: 'title',
+      type: 'list',
+      message: 'Choose a title:',
+      choices: 
+      titleChoices,
+    },
+        ])
+  
+    const empResult = empData.filter(val => inquirerPrompt.employee === val.last_name)
+    const titleResult = titleData.filter(val => inquirerPrompt.title === val.title)
+    const queryEmpUpdate = 'UPDATE employeetable SET role_id = ? WHERE id = ?'
+    const addEmpData = await query(queryEmpUpdate, [titleResult[0].id, empResult[0].id])
+          
+    console.log('Updated employee role!!')
+    startPrompt();
+  }
+  // ----update an employee manager-----  
+  const employeeMangerUpdate= async () => {
+    const addManager = 'SELECT id, last_name FROM employeetable';
+    const managerData = await query(addManager);
+    const managerChoices = managerData.map(({last_name}) => last_name);
+
+    const addEmp = 'SELECT id, last_name FROM employeetable';
+    const empData = await query(addEmp);
+    const empChoices = empData.map(({last_name}) => last_name);
+    
+    const inquirerPrompt = await inquirer
+    .prompt([
+      {
+        name: 'employee',
+        type: 'list',
+        message: 'Choose an employee to update',
+        choices: 
+        empChoices,
+      },
+      {
+      name: 'manager',
+      type: 'list',
+      message: 'Who is the new manager:',
+      choices: 
+      managerChoices,
+    },
+        ])
+  
+    const empSelection = empData.filter(val => inquirerPrompt.employee === val.last_name)
+    const managerResult = managerData.filter(val => inquirerPrompt.manager === val.last_name)
+    const queryEmpManagerUpdate = 'UPDATE employeetable SET manager_id = ? WHERE id = ?'
+    const addEmpManagerData = await query(queryEmpManagerUpdate, [managerResult[0].id, empSelection[0].id])
+          
+    console.log('Updated employee manager!!')
     startPrompt();
   }
     

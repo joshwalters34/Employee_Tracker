@@ -26,7 +26,7 @@ CREATE TABLE roleTable (
 );
 
 ALTER TABLE roleTable
-  ADD FOREIGN KEY (department_id) REFERENCES department(id),
+  ADD FOREIGN KEY (department_id) REFERENCES department(id)
 
 
 
