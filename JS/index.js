@@ -1,6 +1,7 @@
 const mysql = require('mysql');
 const inquirer = require('inquirer');
 const cTable = require('console.table');
+const util = require('util');
 
 const connection = mysql.createConnection({
   host: 'localhost',
@@ -16,11 +17,13 @@ const connection = mysql.createConnection({
   database: 'employeetracker_db',
 });
 
+const query = util.promisify(connection.query).bind(connection);
+
 connection.connect((err) => {
   if (err) throw err;
   startPrompt();
 });
-
+// --------Initial prompt to start inquirer --------------
 const startPrompt = () => {
     inquirer
       .prompt({
@@ -78,9 +81,8 @@ const startPrompt = () => {
         }
       });
   };
-
+// ------View all employees------------
   const employeesAll = () => {
-    // const query = 'SELECT * FROM employeetable INNER JOIN roletable on employeetable.role_id = roletable.id';
     const query = 'select e.first_name, e.last_name, r.title, r.salary, d.name,(select emp.last_name from employeetable emp where emp.id = e.manager_id)  as managerfirstname from employeetable e join roletable r on e.role_id = r.id join department d on r.department_id = d.id ORDER BY last_name'
     connection.query(query, (err, res) =>  {
       if (err) throw err;
@@ -94,7 +96,7 @@ const startPrompt = () => {
     });
   }
 
-  
+  // ----View employees by department-------
   const employeesByDept = () => {
     const departmentsEmpAll = 'SELECT id, name FROM department'
     connection.query(departmentsEmpAll, (err, res) => {
@@ -128,7 +130,9 @@ const startPrompt = () => {
     })
     })
   }
-    const departmentsAll = () => {
+    
+  // -----View all departments -------
+  const departmentsAll = () => {
       const departmentsAll = 'SELECT * FROM department'
       connection.query(departmentsAll, (err, res) => {
         if (err) throw err;
@@ -140,7 +144,7 @@ const startPrompt = () => {
           startPrompt();
     })
   }
-
+// -----View all roles--------
   const rolesAll = () => {
     const rolesAll = 'SELECT * FROM roletable'
     connection.query(rolesAll, (err, res) => {
@@ -153,16 +157,14 @@ const startPrompt = () => {
         startPrompt();
   })
 }
-// need to finish this still
-const roleAdd = () => {
-  const addRole = 'SELECT id, name FROM department'
-    connection.query(addRole, (err, res) => {
-      if (err) throw err;
-      const deptartmentChoices = res.map(({name}) => {
-          return name
-        })
-
-  inquirer
+// ------ add a new role --------
+const roleAdd = async () => {
+  const addRole = 'SELECT id, name FROM department';
+  const departmentData = await query(addRole);
+  // console.log(departmentData)
+  const deptartmentChoices = departmentData.map(({name}) => name);
+  
+  const inquirerPrompt = await inquirer
   .prompt([{
     name: 'role',
     type: 'input',
@@ -174,33 +176,24 @@ const roleAdd = () => {
   },
   {
     name: 'dept',
-      type: 'list',
-      message: 'Please choose your department?',
-      choices: 
-        deptartmentChoices,
-        
+    type: 'list',
+    message: 'Please choose your department?',
+    choices: 
+    deptartmentChoices,
+    
   },
-])
-  .then((answer) => {
-    const deptPick = 'Select id FROM department where name = ?'
-    const deptResult = connection.query(deptPick, (answer.dept))
+  ])
 
-    // const query = 'INSERT INTO roletable (title, salary, department_id) VALUES(?, ?, ?)'
-    const query = 'INSERT INTO roletable SET title = ?, salary = ?, department_id = ?'
-    connection.query(query, (answer.role, answer.salary, deptResult), (err, res) => {
-      if (err) throw err;
-      // res.forEach(({first_name, last_name, title, manager_id, salary, name}) => {
-        const roleResults= res.json(({title, salary, department_id}) => {
-          return roleResults
-      });
-            
-        console.log('Added new role!!')
-      startPrompt();
-    });
-    });
-  })
-  }
-
+  const departResult = departmentData.filter(val => inquirerPrompt.dept === val.name)
+  const query2 = 'INSERT INTO roletable (title, salary, department_id) VALUES (?, ?, ?)'
+  const addRoleData = await query(query2, [inquirerPrompt.role, inquirerPrompt.salary, departResult[0].id])
+  
+  console.log(addRoleData);
+        
+  console.log('Added new role!!')
+  startPrompt();
+}
+// ----add new department------
   const departmentAdd = () => {
     inquirer
     .prompt({
@@ -224,6 +217,53 @@ const roleAdd = () => {
       console.log('New department was added!')
         startPrompt();
       });
-    };
+  };
+  // ----Add new employee-------
+  const employeeAdd = async () => {
+    const addTitle = 'SELECT id, title FROM roletable';
+    const titleData = await query(addTitle);
+    // console.log(departmentData)
+    const titleChoices = titleData.map(({title}) => title);
+
+    const addManager = 'SELECT id, last_name FROM employeetable';
+    const managerData = await query(addManager);
+    console.log(managerData)
+    const managerChoices = managerData.map(({last_name}) => last_name);
+    
+    const inquirerPrompt = await inquirer
+    .prompt([{
+      name: 'first_name',
+      type: 'input',
+      message: 'Enter first name:',
+    },
+    {name: 'last_name.',
+    type: 'input',
+    message: 'Enter last name:',
+    },
+    {
+      name: 'title',
+      type: 'list',
+      message: 'Choose a title:',
+      choices: 
+      titleChoices,
+    },
+    {
+      name: 'manager',
+      type: 'list',
+      message: 'Choose a manager:',
+      choices: 
+      managerChoices,
+    },
+    ])
   
+    const titleResult = titleData.filter(val => inquirerPrompt.title === val.title)
+    const managerResult = managerData.filter(val => inquirerPrompt.manager == val.last_name)
+    const queryEmp = 'INSERT INTO employeetable (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)'
+    const addTitleData = await query(queryEmp, [inquirerPrompt.first_name, inquirerPrompt.last_name, titleResult[0].id, managerResult[0].id])
+    
+    console.log(addTitleData);
+          
+    console.log('Added new employee!!')
+    startPrompt();
+  }
     
