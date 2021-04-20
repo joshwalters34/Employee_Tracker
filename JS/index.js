@@ -2,26 +2,23 @@ const mysql = require('mysql');
 const inquirer = require('inquirer');
 const cTable = require('console.table');
 const util = require('util');
-// require('dotenv').config();
+const path = require('path');
+require('dotenv').config({path:'../.env' });
+console.log(process.env.DB_USER);
+console.log(process.env.DB_PASS);
+console.log(process.env.DB_NAME);
 
-// const connection = mysql.createConnection({
-//   database: process.env.DB_NAME,
-//   user: process.env.DB_USER,
-//   password: process.env.DB_PASSWORD,
-//   host: process.env.DB_HOST,
+const connection = mysql.createConnection(
   
-//     port: 3306,
-// }
-// );
+  {
+    host: 'localhost',
+    port: 3306,
+    user: process.env.DB_USER,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASS,
 
-const connection = mysql.createConnection({
-  host: 'localhost',
-  port: 3306,
-
-  user: 'root',
-  password: 'GoNiners02@',
-  database: 'employeetracker_db',
-});
+  }
+);
 
 const query = util.promisify(connection.query).bind(connection);
 
