@@ -3,7 +3,7 @@ CREATE database employeeTracker_DB;
 
 USE employeeTracker_DB;
 
-CREATE TABLE employeeTable (
+CREATE TABLE employeetable (
   id INT NOT NULL AUTO_INCREMENT ,
   first_name VARCHAR(30) NOT NULL,
   last_name VARCHAR(30) NOT NULL,
@@ -12,12 +12,12 @@ CREATE TABLE employeeTable (
   PRIMARY KEY (id)
 );
 ALTER TABLE employeeTable
-  ADD FOREIGN KEY (manager_id) REFERENCES employeeTable(id),
-  ADD FOREIGN KEY  (role_id) REFERENCES roleTable(id);
+  ADD FOREIGN KEY (manager_id) REFERENCES employeetable(id);
+  ADD FOREIGN KEY  (role_id) REFERENCES roletable(id);
  
 
 
-CREATE TABLE roleTable (
+CREATE TABLE roletable (
   id INT NOT NULL AUTO_INCREMENT ,
   title VARCHAR(30) NOT NULL,
   salary DECIMAL(6,2) NOT NULL,
@@ -25,8 +25,8 @@ CREATE TABLE roleTable (
   PRIMARY KEY (ID)
 );
 
-ALTER TABLE roleTable
-  ADD FOREIGN KEY (department_id) REFERENCES department(id)
+ALTER TABLE roletable
+  ADD FOREIGN KEY (department_id) REFERENCES department(id);
 
 
 
